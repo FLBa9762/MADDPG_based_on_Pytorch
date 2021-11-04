@@ -1,0 +1,47 @@
+1、 parl的parl.Model类中有 sync_weights_to() 函数，
+    并且还有与网络参数有关的其他两个类方法：get_weights()与set_weights()
+2、 paddle 的 nn.Linear()类定义了对网络参数初始化的参数 weight_attr 与 bias_attr，
+    其他类型网络应该也有类似的修改；
+3、 paddle 的 paddle.concat()函数功能比torch.cat()更加强大，
+    例如在MPE多智能体环境中Critic网络对所有agent的 act 和 obs 进行拼接时(例如所有智能体
+    信息的外部被列表包裹等等)，paddle.concat()使用起来更加方便，而torch.cat()需要自己对列表进行操作。
+4、 paddle 在优化器 optimizer 定义时新加入了一些参数，例如 grad_clip
+5、 numpy 数据转换张量的方法，
+      torch: torch.from_numpy(obs.reshape(1, -1)).to(device, torch.float)
+      paddle: paddle.to_tensor(obs.reshape(1, -1), dtype='float32')
+6、 torch在环境输入网络前转为Tensor张量时需要手动  .to(device)，
+    paddle.to_tensor()已经集成
+7、 parl已经集成了对模型保存等操作的方法，直接调用即可，
+    torch 使用时需要自己编写
+
+
+
+******仿照Parl框架使用纯torch库写RL实验时，各类的方法汇总如下：
+       Model:
+            policy(self, obs)
+            value(self, obs, act)
+            get_actor_params(self)
+            get_critic_params(self)
+            sync_weights_to(self, target_model, decay)
+       alg:
+            predict(self, obs, use_target_model=True/False)
+            Q_value(self, obs, act, use_target_model=True/False)
+            learn(self, obs, act, target_q):
+                actor_learn(self, obs, act)
+                critic_learn(self, obs, act, target_q)
+            sync_target(self, decay)
+       Agent:
+            predict(self, obs, arglist, use_target_model=None)  #无初始值参数只可以在有初始值参数之前
+            learn(self, agents, arglist)
+            add_experience(self, obs, act, reward, next_obs, terminal)
+            restore(self, save_path, model=None, map_location=None) #模型重载
+            save(self, save_path, model=None)
+
+       else_function:
+            SoftPDistribution()
+            get_shape()
+            list_concat()
+
+       tips:
+            target_q在agent.learn()中求而不是alg.learn()
+            <Tensor_data>.item()    #取Tensor中的值，不影响网络
